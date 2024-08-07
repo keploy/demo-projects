@@ -14,11 +14,14 @@ RUN npm install js-yaml  # Install js-yaml
 
 # Stage 3: Set up the Python environment
 FROM ubuntu:latest as python-builder
-RUN apt-get update && apt-get install -y python3 python3-pip python3-venv curl lsof && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && apt-get install -y python3.12 python3.12-venv python3.12-dev python3-pip curl lsof && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY python/. ./
-RUN python3 -m venv venv && \
+RUN python3.12 -m venv venv && \
     . venv/bin/activate && \
     if [ -f "requirements.txt" ]; then pip install --no-cache-dir -r requirements.txt; fi
 
@@ -52,13 +55,15 @@ COPY --from=js-builder /app /app/js-app
 COPY --from=js-builder /usr/local/lib/node_modules/nyc /usr/local/lib/node_modules/nyc
 RUN ln -s /usr/local/lib/node_modules/nyc/bin/nyc.js /usr/local/bin/nyc
 
-# Copy the Python application code
+# Copy the Python application code and virtual environment
 COPY --from=python-builder /app /app/python-app
 COPY --from=python-builder /app/venv /app/venv
 
 COPY --from=python-builder /usr/local/bin/keploy /usr/local/bin/keploy
 RUN chmod +x /usr/local/bin/keploy
 
-ENV PYTHONUNBUFFERED 1
+# Set environment variables for Python
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH="/app/python-app/venv/lib/python3.12/site-packages"
 
 CMD ["sleep", "infinity"]
