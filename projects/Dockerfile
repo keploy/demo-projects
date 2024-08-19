@@ -12,7 +12,13 @@ RUN npm install
 RUN npm install -g nyc  # Install nyc globally
 RUN npm install js-yaml  # Install js-yaml
 
-# Stage 3: Set up the Python environment
+# Stage 3: Build the Java Spring Boot application
+FROM maven:3.8.1-openjdk-17 AS java-builder
+WORKDIR /app
+COPY AnimalAppApplication/. ./
+RUN mvn clean package -DskipTests
+
+# Stage 4: Set up the Python environment
 FROM ubuntu:latest as python-builder
 RUN apt-get update && apt-get install -y software-properties-common && \
     add-apt-repository ppa:deadsnakes/ppa && \
@@ -35,6 +41,9 @@ RUN apt-get update && apt-get install -y curl lsof sudo nano git golang-go
 
 # Install Node.js and npm
 RUN curl -sL https://deb.nodesource.com/setup_18.x | bash - && apt-get install -y nodejs
+
+# Install Java (optional, depending on if you need JRE only)
+RUN apt-get update && apt-get install -y openjdk-17-jre
 
 # Set up the working directory
 WORKDIR /app
@@ -62,8 +71,12 @@ COPY --from=python-builder /app/venv /app/venv
 COPY --from=python-builder /usr/local/bin/keploy /usr/local/bin/keploy
 RUN chmod +x /usr/local/bin/keploy
 
+# Copy the Java Spring Boot application JAR
+COPY --from=java-builder /app/target/AnimalAppApplication-0.0.1-SNAPSHOT.jar /app/AnimalAppApplication.jar
+
 # Set environment variables for Python
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH="/app/python-app/venv/lib/python3.12/site-packages"
 
+# Final command to keep the container running indefinitely
 CMD ["sleep", "infinity"]
