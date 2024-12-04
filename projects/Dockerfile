@@ -26,7 +26,7 @@ RUN python3.12 -m venv venv && \
     if [ -f "requirements.txt" ]; then pip install --no-cache-dir -r requirements.txt; fi
 
 # Install keploy
-RUN curl --silent -o keploy --location "https://keploy-enterprise.s3.us-west-2.amazonaws.com/releases/latest/enterprise_linux_amd64" 
+RUN curl --silent -o keploy --location "https://keploy-enterprise.s3.us-west-2.amazonaws.com/releases/latest/enterprise_linux_arm64" 
 RUN chmod a+x keploy && mkdir -p /usr/local/bin && mv keploy /usr/local/bin
 
 # Final Stage: Assemble the final image
